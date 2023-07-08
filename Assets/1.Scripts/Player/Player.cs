@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Data;
+using Unity.Burst.CompilerServices;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
@@ -32,19 +33,27 @@ public abstract class Player : MonoBehaviour
     private SpriteRenderer sr;
     [SerializeField]
     private Image hpImage;
+    [SerializeField]
+    private SpriteRenderer[] hanhs;
+    [SerializeField]
+    private GameObject Fire;
 
 
+    [SerializeField]
+    private Bullet bullet;
     public float moveSpeed;
     
     public float runSpeed;
 
+    public Bullet Bullet;
     public float AttackDistance;
     public Vector2 dis;
+    private RaycastHit2D[] hit;
 
     private float maxHP;
     private float curHP;
-    private RaycastHit2D[] hit;
-    private BGController bg;
+    
+    
     public PlayerData playerData = new PlayerData();
     private PlayerAnimation dir = PlayerAnimation.stand;
    
@@ -62,7 +71,7 @@ public abstract class Player : MonoBehaviour
     }
     public void Init()
     {
-        bg= GetComponent<BGController>();
+        
         walkSpeed = moveSpeed;
         GetComponent<SpriteAnimation>().SetSprite(standSp, 0.2f);
         maxHP = playerData.HP;
@@ -71,7 +80,7 @@ public abstract class Player : MonoBehaviour
     private void Update()
     {
         Move();
-        
+        hit = Physics2D.CircleCastAll(transform.position, 100, Vector2.zero);
     }
     public virtual void Move()
     {
@@ -88,6 +97,7 @@ public abstract class Player : MonoBehaviour
 
 
         sr.flipX = _moveX > 0 ? false:true;
+        
         if (_moveY>0 && dir != PlayerAnimation.run || _moveX > 0&&dir!=PlayerAnimation.run)
         {
             GetComponent<SpriteAnimation>().SetSprite(runSp, 0.2f);
@@ -103,42 +113,37 @@ public abstract class Player : MonoBehaviour
             GetComponent<SpriteAnimation>().SetSprite(standSp,0.2f);
             dir= PlayerAnimation.stand;
         }
-        
-        
         dis = new Vector2(_moveX, _moveY) * moveSpeed * Time.deltaTime;
         transform.Translate(dis);
-        _Basics_Attack();
-
-
     }
-    public void _Basics_Attack()
+
+    public Transform Finding_Target()
     {
-        hit = Physics2D.CircleCastAll(transform.position,playerData.AttackRange,Vector2.zero);
+        Transform result = null;
+        float diff = 100;
+        if (hit == null)
+        {
+            return null;
+        }
+
         foreach (RaycastHit2D targets in hit)
         {
-            if (targets.collider.GetComponent<Enemy>())
+            Vector2 playerPos = transform.position;
+            Vector2 target = targets.transform.position;
+            float dir = Vector2.Distance(playerPos, target);
+            if (dir < diff)
             {
-                targets.collider.GetComponent<Enemy>().HP = playerData.Damage;
+                diff = dir;
+                result = targets.transform;
             }
-            
         }
-        
 
+        return result;
     }
-    //private Transform GetDic()
-    //{
-    //    Vector2 myPos = transform.position;
-    //    Vector2 targetPos = GameObject.FindObjectOfType<Enemy>().transform.position;
-    //}
+
     private void OnDrawGizmos()
     {
         Gizmos.color = Color.green;
-        Gizmos.DrawWireSphere(transform.position, playerData.AttackRange);
+        Gizmos.DrawWireSphere(transform.position, 100);
     }
-
-
-
-
-
-
 }
